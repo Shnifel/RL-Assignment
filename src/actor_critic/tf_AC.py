@@ -1,4 +1,4 @@
-from A2C_Cont_env import Gym2OpEnv
+from A2C_MD_env import Gym2OpEnv
 from stable_baselines3 import A2C
 from stable_baselines3.common.callbacks import BaseCallback
 import os
@@ -29,11 +29,7 @@ class TensorboardCallback(BaseCallback):
             writer = csv.writer(f)
             writer.writerow(["Episode Reward"])
 
-        with open(self.action_path, "w", newline="") as z:
-                writer = csv.writer(z)
-
-        with open(self.okay_action, "w", newline="") as l:
-                    writer = csv.writer(l)
+        
 
         self.episode_rewards = 0  
         self.episode_num = 0 
@@ -66,22 +62,13 @@ class TensorboardCallback(BaseCallback):
             
 
             
-                
-            with open(self.action_path, "a", newline="") as z:
-                writer = csv.writer(z)
-                writer.writerow([action])
-
+             
                 
             if self.episode_rewards > self.max_return:
                 sb3_algo1.save(self.model_save_path)
                 self.max_return = self.episode_rewards
             
-            if self.episode_rewards >= 1000:
-                with open(self.okay_action, "a", newline="") as l:
-                    writer = csv.writer(l)
-                    for i in range(len(self.ep_actions)-1):
-                        writer.writerow(self.ep_actions[i])
-                    
+         
                         
 
 

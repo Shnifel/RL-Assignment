@@ -123,7 +123,7 @@ class Gym2OpEnv(gym.Env):
         # 3x compute improvement if anything with _bus is removed and minimal performance reduced
         # Can reduce to this with minimal loss and minimal performance increase
         act_attr_to_keep = [
-           "set_line_status", "set_bus", "sub_set_bus", "blank"
+           "set_line_status", "set_bus","sub_set_bus" 
             ]
         #Removed:    , change_bus, set_bus, change_line_status, "one_line_set",
         # Attributes that can do it alone : "set_line_status"(100 it/s) , "change_bus"(54 it/s), "set_bus"(53 it/s), "sub_change_bus"(100 it/s), "sub_set_bus" (100 it/s)
@@ -132,15 +132,13 @@ class Gym2OpEnv(gym.Env):
         #     ]
         self._gym_env.action_space = MultiDiscreteActSpace(self._g2op_env.action_space, attr_to_keep = act_attr_to_keep)
         self.action_space = self._gym_env.action_space
-        print(self.action_space)
+        
         
         # self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
         # self.action_space = Box(shape=self._gym_env.action_space.shape,
         #                             low=np.array([0, 0, 0, -5, -10, -15],dtype=int),
         #                             high=np.array([1, 1, 1, 5, 10, 15],dtype=int))
-        # print(self._gym_env.action_space.low)
-        # print(self._gym_env.action_space.high)
-
+ 
     def reset(self, seed=None, options=None):
 
         return self._gym_env.reset(seed=seed, options=None)
@@ -148,12 +146,8 @@ class Gym2OpEnv(gym.Env):
     def step(self, action):
         # for i in range(len(action)):
         #     action[i] = self.round_and_clip(action[i],self._gym_env.action_space.low[i],self._gym_env.action_space.high[i])
-        obs= self._gym_env.step(action)
-        reward = self._gym_env.step(action)[1]
-        done = self._gym_env.step(action)[2] 
         
-        
-        return obs, reward, done
+        return self._gym_env.step(action)
     
     
     
@@ -203,14 +197,14 @@ def main():
     while not is_done and curr_step < max_steps:
         action = env.action_space.sample()
         print(type(action))
-        obs, reward, done = env.step(action)
+        obs = env.step(action)
         
         if curr_step < 2:
             print("Taken Action: ", action)
             
         curr_step += 1
-        curr_return += reward
-        is_done = done
+        # curr_return += reward
+        # is_done = done
         # print(f"step = {curr_step}: ")
         # print(f"\t obs = {obs}")
         # print(f"\t reward = {reward}")

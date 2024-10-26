@@ -14,6 +14,7 @@ import numpy as np
 import joblib
 from stable_baselines3 import A2C
 from gymnasium.spaces import MultiDiscrete
+from grid2op.gym_compat.utils import ActType
 
 
 
@@ -102,6 +103,7 @@ class Gym2OpEnv(gym.Env):
 
         self._gym_env.action_space = MultiDiscreteActSpace(self._g2op_env.action_space, attr_to_keep = act_attr_to_keep)
         self.action_space = self._gym_env.action_space
+        
 
     def setup_actions_set_bus(self):
         self._gym_env.action_space.close()
@@ -177,7 +179,7 @@ class Multi_agent_env(gym.Env):
         self._gym_env = gym_compat.GymEnv(self._g2op_env)
         self.before_change = self._gym_env.observation_space
         self.setup_observations()
-        self.setup_actions
+        self.setup_actions()
         
     def setup_observations(self):
 
@@ -231,7 +233,7 @@ class Multi_agent_env(gym.Env):
         # obs= self._gym_env.step(action)
         # reward = self._gym_env.step(action)[1]
         # done = self._gym_env.step(action)[2] 
-
+        
         return self._gym_env.step(action)
 
     def render(self):
@@ -243,16 +245,17 @@ class Multi_agent_env(gym.Env):
 
 Multi_agent_environment = Multi_agent_env()
 set_line_status_env = Gym2OpEnv("set_line_status")
-set_line_status_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Labs/Assignment/model_1/models/set_line_status_Best_model.zip")
+set_line_status_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Assignment/src/actor_critic/actor_critic_models/set_line_status_Best_model.zip")
 set_line_status_model.set_env(set_line_status_env)
 
 set_bus_env = Gym2OpEnv("set_bus")
-set_bus_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Labs/Assignment/model_1/models/Best_model_set_bus.zip")
+set_bus_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Assignment/src/actor_critic/actor_critic_models/Best_model_set_bus.zip")
 set_bus_model.set_env(set_bus_env)
 
 sub_set_bus_env = Gym2OpEnv("sub_set_bus")
-sub_set_bus_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Labs/Assignment/model_1/models/Best_model_sub_set_bus.zip")
+sub_set_bus_model = A2C.load("/mnt/c/Users/lukek/OneDrive/Desktop/Computer Science Honours/RL/RL-Assignment/src/actor_critic/actor_critic_models/Best_model_sub_set_bus.zip")
 sub_set_bus_model.set_env(sub_set_bus_env)
+
 
 reward_log = "./Multiagent_rewards.txt"
 episode_len_log = "./Multiagent_length.txt"
@@ -268,8 +271,9 @@ for i in range(0,1000):
         set_bus_action = set_bus_model.predict(obs)
         sub_set_bus_action = sub_set_bus_model.predict(obs)
         
-        full_action = np.concatenate((set_line_action[0], set_bus_action[0],sub_set_bus_action[0]))
-        print(full_action)
+        full_action = np.concatenate((set_bus_action[0], set_line_action[0],sub_set_bus_action[0]))
+        
+        
         
         obs, reward, terminated, truncated, info = Multi_agent_environment.step(full_action)
         if reward == -0.5:

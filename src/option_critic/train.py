@@ -15,9 +15,11 @@ from experience_replay import ReplayBuffer
 from logger import Logger
 
 import time
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description="Option Critic PyTorch")
 parser.add_argument('--env', default='g2op', help='ROM to run')
+parser.add_argument('--act_type', default='disc', help='ROM to run')
 parser.add_argument('--optimal-eps', type=float, default=0.05, help='Epsilon when playing optimally')
 parser.add_argument('--frame-skip', default=4, type=int, help='Every how many frames to process')
 parser.add_argument('--learning-rate',type=float, default=.0005, help='Learning rate')
@@ -38,18 +40,19 @@ parser.add_argument('--max_steps_ep', type=int, default=18000, help='number of m
 parser.add_argument('--max_steps_total', type=int, default=int(4e6), help='number of maximum steps to take.') # bout 4 million
 parser.add_argument('--cuda', type=bool, default=True, help='Enable CUDA training (recommended if possible).')
 parser.add_argument('--seed', type=int, default=0, help='Random seed for numpy, torch, random.')
-parser.add_argument('--logdir', type=str, default='tensorboard_logs', help='Directory for logging statistics')
+parser.add_argument('--logdir', type=str, default='logs', help='Directory for logging statistics')
 parser.add_argument('--exp', type=str, default=None, help='optional experiment name')
 parser.add_argument('--switch-goal', type=bool, default=False, help='switch goal after 2k eps')
 
 def train_option_critic(args):
-    env = Gym2OpEnv()
+    env = Gym2OpEnv(act_space_type=args.act_type)
     option_critic = OptionCriticFeatures
     device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
 
     option_critic = option_critic(
         in_features=env.observation_space.shape[0],
-        action_dim=env.action_space.shape[0],
+        action_dim=env.action_space.n if args.act_type == "disc" else env.action_space.shape[0],
+        action_type=args.act_type,
         num_options=args.num_options,
         temperature=args.temp,
         eps_start=args.epsilon_start,
@@ -68,7 +71,7 @@ def train_option_critic(args):
     #env.seed(args.seed)
 
     buffer = ReplayBuffer(capacity=args.max_history, seed=args.seed)
-    logger = Logger(logdir=args.logdir, run_name=f"{OptionCriticFeatures.__name__}-{args.env}-{args.exp}")
+    logger = Logger(logdir=args.logdir, run_name=f"{args.exp}")
 
     steps = 0
     if args.switch_goal: print(f"Current goal {env.goal}")
@@ -107,7 +110,7 @@ def train_option_critic(args):
                 curr_op_len = 0
     
             action, logp, entropy = option_critic.get_action(state, current_option)
-            action = action.to('cpu').squeeze(0)
+            action = action.to('cpu').squeeze(0) if args.act_type == "cont" else action
 
             next_obs, reward, done, truncated, _ = env.step(action)
             buffer.push(obs, current_option, reward, next_obs, done)

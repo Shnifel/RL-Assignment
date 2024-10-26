@@ -1,0 +1,3 @@
+*.pyc
+src/option_critic/logs
+src/actor_critic/logs

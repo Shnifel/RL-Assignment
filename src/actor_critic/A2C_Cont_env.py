@@ -116,10 +116,11 @@ class Gym2OpEnv(gym.Env):
         
         
         
-        self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
-        self.action_space = Box(shape=self._gym_env.action_space.shape,
-                                    low=np.array([0, 0, 0, -5, -10, -15],dtype=int),
-                                    high=np.array([1, 1, 1, 5, 10, 15],dtype=int))
+        self._gym_env.action_space = gym_compat.DiscreteActSpace(self._g2op_env.action_space)
+        # self.action_space = Box(shape=self._gym_env.action_space.shape,
+        #                             low=np.array([0, 0, 0, -5, -10, -15],dtype=int),
+        #                             high=np.array([1, 1, 1, 5, 10, 15],dtype=int))
+        self.action_space =  self._gym_env.action_space
        
 
     def reset(self, seed=None, options=None):

@@ -147,12 +147,8 @@ class Gym2OpEnv(gym.Env):
     def step(self, action):
         # for i in range(len(action)):
         #     action[i] = self.round_and_clip(action[i],self._gym_env.action_space.low[i],self._gym_env.action_space.high[i])
-        obs= self._gym_env.step(action)
-        reward = self._gym_env.step(action)[1]
-        done = self._gym_env.step(action)[2] 
         
-        
-        return obs, reward, done
+        return self._gym_env.step(action)
     
     
     

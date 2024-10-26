@@ -15,6 +15,7 @@ import joblib
 from stable_baselines3 import A2C
 from gymnasium.spaces import MultiDiscrete
 from grid2op.gym_compat.utils import ActType
+import random
 
 
 
@@ -261,7 +262,7 @@ reward_log = "./Multiagent_rewards.txt"
 episode_len_log = "./Multiagent_length.txt"
 for i in range(0,1000):
     done = False
-    obs, info = Multi_agent_environment.reset()
+    obs, info = Multi_agent_environment.reset(options={"init ts": random.randint(60,1000)})
     set_line_status_env.reset()
     set_bus_env.reset()
     ep_len = 0

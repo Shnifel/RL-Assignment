@@ -115,17 +115,17 @@ class Gym2OpEnv(gym.Env):
         self._gym_env.action_space.close()
         
         
-        # act_attr_to_keep = [
-        #     "change_bus", "change_line_status", "one_line_change", "one_line_set", "one_sub_change",
-        #     "one_sub_set", "raise_alarm", "raise_alert", "set_bus", "set_line_status", "sub_change_bus",
-        #     "sub_set_bus"
-        #     ]
+        act_attr_to_keep = [
+            "change_bus", "change_line_status", "one_line_change", "one_line_set", "one_sub_change",
+            "one_sub_set", "raise_alarm", "raise_alert", "set_bus", "set_line_status", "sub_change_bus",
+            "sub_set_bus"
+            ]
         # 3x compute improvement if anything with _bus is removed and minimal performance reduced
         # Can reduce to this with minimal loss and minimal performance increase
-        act_attr_to_keep = [
-           "set_line_status", "set_bus","sub_set_bus" 
-            ]
-        #Removed:    , change_bus, set_bus, change_line_status, "one_line_set",
+        # act_attr_to_keep = [
+        #    "set_line_status", "set_bus","sub_set_bus" 
+        #     ]
+        # #Removed:    , change_bus, set_bus, change_line_status, "one_line_set",
         # Attributes that can do it alone : "set_line_status"(100 it/s) , "change_bus"(54 it/s), "set_bus"(53 it/s), "sub_change_bus"(100 it/s), "sub_set_bus" (100 it/s)
         # act_attr_to_keep = [
         #      "set_line_status"

@@ -15,21 +15,24 @@ def to_tensor(obs):
 class OptionCriticFeatures(nn.Module):
     def __init__(self,
                 in_features,
-                action_dim,  # Continuous action space (num_actions -> action_dim)
+                action_dim,
                 num_options,
+                action_type = "cont",
                 temperature=1.0,
                 eps_start=1.0,
                 eps_min=0.1,
                 eps_decay=int(1e6),
                 eps_test=0.05,
                 device='cpu',
-                testing=False):
+                testing=False,
+                attention=False):
 
         super(OptionCriticFeatures, self).__init__()
 
         self.in_features = in_features
-        self.action_dim = action_dim  # Continuous action dimension
+        self.action_dim = action_dim
         self.num_options = num_options
+        self.action_type = action_type
         self.device = device
         self.testing = testing
 
@@ -49,8 +52,8 @@ class OptionCriticFeatures(nn.Module):
 
         self.Q            = nn.Linear(64, num_options)  # Policy-Over-Options
         self.terminations = nn.Linear(64, num_options)  # Option-Termination
-        self.options_mean = nn.Parameter(torch.zeros(num_options, 64, action_dim))
-        self.options_log_std = nn.Parameter(torch.zeros(num_options, action_dim))  # Log of standard deviation
+        self.options_W= nn.Parameter(torch.zeros(num_options, 64, action_dim))
+        self.options_b = nn.Parameter(torch.zeros(num_options, action_dim))  # Log of standard deviation
 
         self.to(device)
         self.train(not testing)
@@ -74,12 +77,22 @@ class OptionCriticFeatures(nn.Module):
 
     def get_terminations(self, state):
         return self.terminations(state).sigmoid()
+    
+    def get_disc_action(self, state, option):
+        logits = state.data @ self.options_W[option] + self.options_b[option]
+        action_dist = (logits / self.temperature).softmax(dim=-1)
+        action_dist = Categorical(action_dist)
 
-    def get_action(self, state, option):
-        # Get mean and log_std for the selected option
-        mean = state.data @ self.options_mean[option]  # Mean of action distribution
-        log_std = self.options_log_std[option].clamp(-20, 2)  # Log std deviation, clamped for numerical stability
-        std = log_std.exp()  # Convert log std to std
+        action = action_dist.sample()
+        logp = action_dist.log_prob(action)
+        entropy = action_dist.entropy()
+
+        return action.item(), logp, entropy
+
+    def get_cont_action(self, state, option):
+        mean = state.data @ self.options_W[option]
+        log_std = self.options_b[option].clamp(-20, 2) 
+        std = log_std.exp()
 
         # Sample from Normal distribution
         action_dist = Normal(mean, std)
@@ -88,6 +101,12 @@ class OptionCriticFeatures(nn.Module):
         entropy = action_dist.entropy().sum(-1)  # Sum entropy over action dimensions
 
         return action, logp, entropy
+    
+    def get_action(self, state, option):
+        if self.action_type == "cont":
+            return self.get_cont_action(state, option)
+        else:
+            return self.get_disc_action(state, option)
 
     def greedy_option(self, state):
         Q = self.get_Q(state)

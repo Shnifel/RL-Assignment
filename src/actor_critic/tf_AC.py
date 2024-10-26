@@ -101,8 +101,10 @@ if __name__ == "__main__":
     os.makedirs(log_dir, exist_ok=True)
     sb3_algo1 = A2C("MlpPolicy", env, verbose=0, tensorboard_log=log_dir)
 
+    import torch
+
     sb3_algo1.learn(
-        total_timesteps=int(1e6), 
+        total_timesteps=int(1e4), 
         progress_bar=True,
         callback=[TensorboardCallback()]
     )

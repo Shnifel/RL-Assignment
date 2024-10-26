@@ -5,7 +5,7 @@ from grid2op import gym_compat
 from grid2op.Parameters import Parameters
 from grid2op.Action import PlayableAction
 from grid2op.Observation import CompleteObservation
-from grid2op.Reward import L2RPNReward, N1Reward, CombinedScaledReward
+from grid2op.Reward import L2RPNReward, N1Reward, CombinedScaledReward, BridgeReward
 from grid2op.gym_compat import DiscreteActSpace
 from grid2op.gym_compat import MultiDiscreteActSpace
 from lightsim2grid import LightSimBackend
@@ -49,6 +49,7 @@ class Gym2OpEnv(gym.Env):
         cr = self._g2op_env.get_reward_instance()
         cr.addReward("N1", N1Reward(), 1.0)
         cr.addReward("L2RPN", L2RPNReward(), 1.0)
+        #cr.addReward("BridgeReward", BridgeReward(), 1.0)
         # reward = N1 + L2RPN
         cr.initialize(self._g2op_env)
         ##########

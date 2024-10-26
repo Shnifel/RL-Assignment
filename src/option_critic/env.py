@@ -1,5 +1,5 @@
 import gymnasium as gym
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Discrete
 import grid2op
 from grid2op import gym_compat
 from grid2op.Parameters import Parameters
@@ -14,12 +14,14 @@ import matplotlib.pyplot as plt
 # Gymnasium environment wrapper around Grid2Op environment
 class Gym2OpEnv(gym.Env):
     def __init__(
-            self
+            self,
+            act_space_type = "disc"
     ):
         super().__init__()
 
         self._backend = LightSimBackend()
         self._env_name = "l2rpn_case14_sandbox"  # DO NOT CHANGE
+        self.act_space_type = act_space_type
 
         action_class = PlayableAction
         observation_class = CompleteObservation
@@ -59,17 +61,34 @@ class Gym2OpEnv(gym.Env):
         self.action_space = self._gym_env.action_space
 
     def setup_observations(self):
+
+        attributes_to_keep = [
+            "a_ex", "a_or", "actual_dispatch",
+            "delta_time",
+            "gen_margin_down", "gen_margin_up", "gen_p", "gen_p_before_curtail", "gen_q",
+             "gen_v","line_status", "load_p", "load_q", "load_v", "p_ex", "p_or", "prod_p", "prod_q", "prod_v",
+            "q_ex", "q_or", "rho",  "target_dispatch", "thermal_limit", "v_ex", "v_or"
+        ]
         self._gym_env.observation_space.close()
-        self._gym_env.observation_space = gym_compat.BoxGymObsSpace(self._g2op_env.observation_space)
+        self._gym_env.observation_space = gym_compat.BoxGymObsSpace(self._g2op_env.observation_space, attr_to_keep=attributes_to_keep)
         self.observation_space = Box(shape=self._gym_env.observation_space.shape,
                                      low=self._gym_env.observation_space.low,
                                      high=self._gym_env.observation_space.high)
     def setup_actions(self):
         self._gym_env.action_space.close()
-        self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
-        self.action_space = Box(shape=self._gym_env.action_space.shape,
-                                    low=self._gym_env.action_space.low,
-                                    high=self._gym_env.action_space.high)
+        if self.act_space_type == "cont":
+            self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
+            self.action_space = Box(shape=self._gym_env.action_space.shape,
+                                        low=self._gym_env.action_space.low,
+                                        high=self._gym_env.action_space.high)
+        elif self.act_space_type == "disc":
+            act_attr_to_keep = [
+           "set_bus", "set_line_status"
+            ]
+            self._gym_env.action_space = gym_compat.DiscreteActSpace(self._g2op_env.action_space, attr_to_keep=act_attr_to_keep)
+            self.action_space = self._gym_env.action_space
+        else:
+            pass
 
     def reset(self, seed=None):
         return self._gym_env.reset(seed=seed, options=None)
@@ -78,71 +97,5 @@ class Gym2OpEnv(gym.Env):
         return self._gym_env.step(action)
 
     def render(self):
-        # TODO: Modify for your own required usage
         return self._gym_env.render()
 
-
-def main():
-    # Random agent interacting in environment #
-
-    max_steps = 100
-
-    env = Gym2OpEnv()
-
-    plt.imshow(env.render())
-    plt.show()
-
-    print("#####################")
-    print("# OBSERVATION SPACE #")
-    print("#####################")
-    print(env.observation_space)
-    print("#####################\n")
-
-    print("#####################")
-    print("#   ACTION SPACE    #")
-    print("#####################")
-    print(env.action_space.sample())
-    print("#####################\n\n")
-
-    curr_step = 0
-    curr_return = 0
-
-    is_done = False
-    obs, info = env.reset()
-    print(f"step = {curr_step} (reset):")
-    print(f"\t obs = {obs}")
-    print(f"\t info = {info}\n\n")
-
-    while not is_done and curr_step < max_steps:
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-
-        curr_step += 1
-        curr_return += reward
-        is_done = terminated or truncated
-
-        print(f"step = {curr_step}: ")
-        print(f"\t obs = {obs}")
-        print(f"\t reward = {reward}")
-        print(f"\t terminated = {terminated}")
-        print(f"\t truncated = {truncated}")
-        print(f"\t info = {info}")
-
-        # Some actions are invalid (see: https://grid2op.readthedocs.io/en/latest/action.html#illegal-vs-ambiguous)
-        # Invalid actions are replaced with 'do nothing' action
-        is_action_valid = not (info["is_illegal"] or info["is_ambiguous"])
-        print(f"\t is action valid = {is_action_valid}")
-        if not is_action_valid:
-            print(f"\t\t reason = {info['exception']}")
-        print("\n")
-
-    print("###########")
-    print("# SUMMARY #")
-    print("###########")
-    print(f"return = {curr_return}")
-    print(f"total steps = {curr_step}")
-    print("###########")
-
-
-if __name__ == "__main__":
-    main()

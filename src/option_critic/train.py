@@ -44,6 +44,9 @@ parser.add_argument('--logdir', type=str, default='logs', help='Directory for lo
 parser.add_argument('--exp', type=str, default=None, help='optional experiment name')
 parser.add_argument('--switch-goal', type=bool, default=False, help='switch goal after 2k eps')
 
+parser.add_argument('--use-attention', type=bool, default=False, help='use attention')
+parser.add_argument('--reward-shaping', type=bool, default=False, help='episode length reward shaping')
+
 def train_option_critic(args):
     env = Gym2OpEnv(act_space_type=args.act_type)
     option_critic = OptionCriticFeatures
@@ -59,6 +62,7 @@ def train_option_critic(args):
         eps_min=args.epsilon_min,
         eps_decay=args.epsilon_decay,
         eps_test=args.optimal_eps,
+        attention = args.use_attention,
         device=device
     )
     # Create a prime network for more stable Q values
@@ -119,7 +123,7 @@ def train_option_critic(args):
             actor_loss, critic_loss = None, None
             if len(buffer) > args.batch_size:
                 actor_loss = actor_loss_fn(obs, current_option, logp, entropy, \
-                    reward, done, next_obs, option_critic, option_critic_prime, args)
+                    reward, done, next_obs, option_critic, option_critic_prime, args, eps_length = ep_steps if args.reward_shaping else 0)
                 loss = actor_loss
 
                 if steps % args.update_frequency == 0:

@@ -12,6 +12,20 @@ def to_tensor(obs):
     obs = torch.from_numpy(obs).float()
     return obs
 
+class FeatureAttention(nn.Module):
+    def __init__(self, feature_dim):
+        super(FeatureAttention, self).__init__()
+        self.attention = nn.Sequential(
+            nn.Linear(feature_dim, feature_dim),
+            nn.Sigmoid()
+        )
+
+    def forward(self, features):
+        # features: [batch_size, feature_dim]
+        attn_weights = self.attention(features)  # [batch_size, feature_dim]
+        weighted_features = features * attn_weights  # [batch_size, feature_dim]
+        return weighted_features
+
 class OptionCriticFeatures(nn.Module):
     def __init__(self,
                 in_features,
@@ -47,13 +61,18 @@ class OptionCriticFeatures(nn.Module):
             nn.Linear(in_features, 32),
             nn.ReLU(),
             nn.Linear(32, 64),
-            nn.ReLU()
+            nn.Tanh()
         )
+
+        if attention:
+            self.attention_layers = nn.ModuleList([FeatureAttention(64) for _ in range(self.num_options)])
+        else:
+            self.attention_layers = None
 
         self.Q            = nn.Linear(64, num_options)  # Policy-Over-Options
         self.terminations = nn.Linear(64, num_options)  # Option-Termination
         self.options_W= nn.Parameter(torch.zeros(num_options, 64, action_dim))
-        self.options_b = nn.Parameter(torch.zeros(num_options, action_dim))  # Log of standard deviation
+        self.options_b = nn.Parameter(torch.zeros(num_options, action_dim)) 
 
         self.to(device)
         self.train(not testing)
@@ -79,6 +98,7 @@ class OptionCriticFeatures(nn.Module):
         return self.terminations(state).sigmoid()
     
     def get_disc_action(self, state, option):
+        state = self.get_option_state(state, option)
         logits = state.data @ self.options_W[option] + self.options_b[option]
         action_dist = (logits / self.temperature).softmax(dim=-1)
         action_dist = Categorical(action_dist)
@@ -88,8 +108,16 @@ class OptionCriticFeatures(nn.Module):
         entropy = action_dist.entropy()
 
         return action.item(), logp, entropy
+    
+    def get_option_state(self, state, option):
+        if self.attention_layers:
+            state_option = self.attention_layers[option](state)
+        else:
+            state_option = state  # No attention applied
+        return state_option
 
     def get_cont_action(self, state, option):
+        state = self.get_option_state(state, option)
         mean = state.data @ self.options_W[option]
         log_std = self.options_b[option].clamp(-20, 2) 
         std = log_std.exp()
@@ -143,14 +171,14 @@ def critic_loss(model, model_prime, data_batch, args):
     next_options_term_prob = next_termination_probs[batch_idx, options]
 
     # Now we can calculate the update target gt
-    gt = rewards + masks * args.gamma * \
+    gt = rewards +  masks * args.gamma * \
         ((1 - next_options_term_prob) * next_Q_prime[batch_idx, options] + next_options_term_prob  * next_Q_prime.max(dim=-1)[0])
 
     # to update Q we want to use the actual network, not the prime
     td_err = (Q[batch_idx, options] - gt.detach()).pow(2).mul(0.5).mean()
     return td_err
 
-def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_prime, args):
+def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_prime, args, eps_length=0):
     state = model.get_state(to_tensor(obs))
     next_state = model.get_state(to_tensor(next_obs))
     next_state_prime = model_prime.get_state(to_tensor(next_obs))
@@ -162,7 +190,7 @@ def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_
     next_Q_prime = model_prime.get_Q(next_state_prime).detach().squeeze()
 
     # Target update gt
-    gt = reward + (1 - done) * args.gamma * \
+    gt = reward + + (done)*eps_length + (1 - done) * args.gamma * \
         ((1 - next_option_term_prob) * next_Q_prime[option] + next_option_term_prob  * next_Q_prime.max(dim=-1)[0])
 
     # The termination loss

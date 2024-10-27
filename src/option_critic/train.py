@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 import torch
 from copy import deepcopy
-from env import Gym2OpEnv
+from option_critic.bin_env import Gym2OpEnv
 
 from option_critic import OptionCriticFeatures
 from option_critic import critic_loss as critic_loss_fn

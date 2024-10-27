@@ -98,4 +98,3 @@ class Gym2OpEnv(gym.Env):
 
     def render(self):
         return self._gym_env.render()
-

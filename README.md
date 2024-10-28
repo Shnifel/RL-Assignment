@@ -27,6 +27,7 @@ src
 |   └── actor_critic_models                          Containts actor-critic models from training
 |   └── Multi agent evaluation logs                  Containts the logs used to evlauate the Mulit-agent
 |   └── env.py                                       Grid2Op environment configuration
+|   └── eval.ipynb                                   Jupyter Notebook  visualizes results from logs   
 |   └── train.py                                     Main file from which models are trained
 |   └── utils                                        Folder containing utility scripts
 |       └── Extract_csv.py                           Extracts logging results from tensorboard files

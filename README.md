@@ -72,4 +72,4 @@ cd src/option_critic
 python train.py 
 ```
 
-Run ```python train.py --help``` to get a comprehensive list of arguments.
+Run ```python train.py --help``` to get a comprehensive list of arguments. The required hyperparameters are detailed in the report (the majority are the same as the default settings)

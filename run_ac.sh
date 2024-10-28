@@ -1,5 +1,7 @@
 #!/bin/sh 
 
+cd src/actor_critic
+
 # Baselines
 python train.py --run_name baseline_cont --act_type cont
 python train.py --run_name baseline_disc --act_type disc 

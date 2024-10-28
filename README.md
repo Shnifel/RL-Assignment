@@ -25,12 +25,12 @@ conda deactivate
 src                                             
 ├── actor_critic                                 -> A2C Implementation
 |   └── actor_critic_models                          Containts actor-critic models from training
-|   └── Multi agent evaluation logs                  Containts the logs used to evlauate the Mulit-agent
+|   └── multi_agent_logs                             Containts the logs used to evlauate the Mulit-agent
 |   └── env.py                                       Grid2Op environment configuration
 |   └── eval.ipynb                                   Jupyter Notebook  visualizes results from logs   
 |   └── train.py                                     Main file from which models are trained
 |   └── utils                                        Folder containing utility scripts
-|       └── Extract_csv.py                           Extracts logging results from tensorboard files
+|       └── extract_csv.py                           Extracts logging results from tensorboard files
 |       └── study_agent.py                           Used to Evaluate agents after training
 └── option_critic                                -> Option-Critic Implementation
 |   └── env.py                                       Grid2Op environment configuration
@@ -46,6 +46,16 @@ run_oc.sh                                        -> Training all oc iterations
 ## 3. Running agents
 
 ### Actor-Critic
+We provide a single run script ```run_ac.sh``` in order to train and run each iteration as detailed in the report. All evaluation and graphs are generated in ```eval.ipynb```.
+
+If you would like to train your own variant of this, run:
+
+```bash
+cd src/actor_critic
+python train.py 
+```
+Run ```python train.py --help``` to get a comprehensive list of arguments.
+
 
 ### Option-Critic
 

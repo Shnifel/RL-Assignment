@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 import torch
 from copy import deepcopy
-from option_critic.bin_env import Gym2OpEnv
+from env import Gym2OpEnv
 
 from option_critic import OptionCriticFeatures
 from option_critic import critic_loss as critic_loss_fn
@@ -16,6 +16,7 @@ from logger import Logger
 
 import time
 from tqdm import tqdm
+import torch.nn as nn
 
 parser = argparse.ArgumentParser(description="Option Critic PyTorch")
 parser.add_argument('--env', default='g2op', help='ROM to run')
@@ -46,11 +47,24 @@ parser.add_argument('--switch-goal', type=bool, default=False, help='switch goal
 
 parser.add_argument('--use-attention', type=bool, default=False, help='use attention')
 parser.add_argument('--reward-shaping', type=bool, default=False, help='episode length reward shaping')
+parser.add_argument('--advanced-q-net', type=bool, default=False, help='advanced q network architecture')
+parser.add_argument('--norm-actions', type=bool, default=False, help='normalised actions range')
+parser.add_argument('--cull-obs', type=bool, default=True, help='perform observation culling')
 
 def train_option_critic(args):
-    env = Gym2OpEnv(act_space_type=args.act_type)
+    env = Gym2OpEnv(act_space_type=args.act_type, norm_actions=args.norm_actions, cull_obs=args.cull_obs)
     option_critic = OptionCriticFeatures
     device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
+
+    advanced_q_net = None
+    if args.advanced_q_net:
+        advanced_q_net =  nn.Sequential(
+            nn.Linear(64, 128),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(128, args.num_options),
+        )
+
 
     option_critic = option_critic(
         in_features=env.observation_space.shape[0],
@@ -63,7 +77,9 @@ def train_option_critic(args):
         eps_decay=args.epsilon_decay,
         eps_test=args.optimal_eps,
         attention = args.use_attention,
-        device=device
+        q_network = advanced_q_net,
+        device=device,
+        norm_actions=args.norm_actions
     )
     # Create a prime network for more stable Q values
     option_critic_prime = deepcopy(option_critic)
@@ -116,7 +132,7 @@ def train_option_critic(args):
             action, logp, entropy = option_critic.get_action(state, current_option)
             action = action.to('cpu').squeeze(0) if args.act_type == "cont" else action
 
-            next_obs, reward, done, truncated, _ = env.step(action)
+            next_obs, reward, done, truncated, info = env.step(action)
             buffer.push(obs, current_option, reward, next_obs, done)
             rewards += reward
 

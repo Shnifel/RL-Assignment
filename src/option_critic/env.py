@@ -15,13 +15,17 @@ import matplotlib.pyplot as plt
 class Gym2OpEnv(gym.Env):
     def __init__(
             self,
-            act_space_type = "disc"
+            act_space_type = "disc",
+            norm_actions = False,
+            cull_obs = True
     ):
         super().__init__()
 
         self._backend = LightSimBackend()
         self._env_name = "l2rpn_case14_sandbox"  # DO NOT CHANGE
         self.act_space_type = act_space_type
+        self.norm_action = norm_actions
+        self.cull_obs = cull_obs
 
         action_class = PlayableAction
         observation_class = CompleteObservation
@@ -67,20 +71,27 @@ class Gym2OpEnv(gym.Env):
             "delta_time",
             "gen_margin_down", "gen_margin_up", "gen_p", "gen_p_before_curtail", "gen_q",
              "gen_v","line_status", "load_p", "load_q", "load_v", "p_ex", "p_or", "prod_p", "prod_q", "prod_v",
-            "q_ex", "q_or", "rho",  "target_dispatch", "thermal_limit", "v_ex", "v_or"
+            "q_ex", "q_or", "rho", "thermal_limit", "v_ex", "v_or"
         ]
         self._gym_env.observation_space.close()
-        self._gym_env.observation_space = gym_compat.BoxGymObsSpace(self._g2op_env.observation_space, attr_to_keep=attributes_to_keep)
+        if self.cull_obs:
+            self._gym_env.observation_space = gym_compat.BoxGymObsSpace(self._g2op_env.observation_space, 
+                                                                        attr_to_keep=attributes_to_keep)
+        else:
+            self._gym_env.observation_space = gym_compat.BoxGymObsSpace(self._g2op_env.observation_space)
+                                                                        
         self.observation_space = Box(shape=self._gym_env.observation_space.shape,
                                      low=self._gym_env.observation_space.low,
                                      high=self._gym_env.observation_space.high)
     def setup_actions(self):
         self._gym_env.action_space.close()
         if self.act_space_type == "cont":
+            print(self._gym_env.action_space)
             self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
             self.action_space = Box(shape=self._gym_env.action_space.shape,
                                         low=self._gym_env.action_space.low,
                                         high=self._gym_env.action_space.high)
+            print(self.action_space)
         elif self.act_space_type == "disc":
             act_attr_to_keep = [
            "set_bus", "set_line_status"
@@ -94,6 +105,8 @@ class Gym2OpEnv(gym.Env):
         return self._gym_env.reset(seed=seed, options=None)
 
     def step(self, action):
+        if self.norm_action and self.act_space_type == "cont":
+            action = action.detach() *(self.action_space.high - self.action_space.low) + self.action_space.low
         return self._gym_env.step(action)
 
     def render(self):

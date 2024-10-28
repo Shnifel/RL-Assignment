@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-from torch.distributions import Categorical, Bernoulli, Normal
+from torch.distributions import Categorical, Bernoulli, Normal, SigmoidTransform, TransformedDistribution
 
 from math import exp
 import numpy as np
@@ -39,7 +39,9 @@ class OptionCriticFeatures(nn.Module):
                 eps_test=0.05,
                 device='cpu',
                 testing=False,
-                attention=False):
+                attention=False,
+                q_network = None,
+                norm_actions = False):
 
         super(OptionCriticFeatures, self).__init__()
 
@@ -49,6 +51,7 @@ class OptionCriticFeatures(nn.Module):
         self.action_type = action_type
         self.device = device
         self.testing = testing
+        self.norm_actions = norm_actions
 
         self.temperature = temperature
         self.eps_min   = eps_min
@@ -69,7 +72,7 @@ class OptionCriticFeatures(nn.Module):
         else:
             self.attention_layers = None
 
-        self.Q            = nn.Linear(64, num_options)  # Policy-Over-Options
+        self.Q            = nn.Linear(64, num_options)  if q_network is None else q_network # Policy-Over-Options
         self.terminations = nn.Linear(64, num_options)  # Option-Termination
         self.options_W= nn.Parameter(torch.zeros(num_options, 64, action_dim))
         self.options_b = nn.Parameter(torch.zeros(num_options, action_dim)) 
@@ -122,13 +125,20 @@ class OptionCriticFeatures(nn.Module):
         log_std = self.options_b[option].clamp(-20, 2) 
         std = log_std.exp()
 
-        # Sample from Normal distribution
+        if self.norm_actions:
+            mean = torch.sigmoid(mean)
+            std = 0.1 * torch.sigmoid(std)
+
         action_dist = Normal(mean, std)
-        action = action_dist.sample()
-        logp = action_dist.log_prob(action).sum(-1)  # Sum log probs for multi-dimensional actions
+        action = action_dist.rsample()
+    
+        logp = action_dist.log_prob(action).sum(-1)
+        
         entropy = action_dist.entropy().sum(-1)  # Sum entropy over action dimensions
 
         return action, logp, entropy
+
+
     
     def get_action(self, state, option):
         if self.action_type == "cont":

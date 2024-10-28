@@ -1,3 +1,5 @@
+# Policy gradient methods for Grid2Op
+
 ## 1. Setup and installation
 
 In order to replicate the results obtained, we recommend creating a $\texttt{conda}$ environment as follows

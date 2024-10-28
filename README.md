@@ -43,6 +43,8 @@ run_oc.sh                                        -> Training all oc iterations
 
 ### Option-Critic
 
+Our Option-Critic implementation, as detailed in the report, is adapted from: https://github.com/lweitkamp/option-critic-pytorch
+
 We provide a single run script ```run_oc.sh``` in order to train and run each iteration, as well as evaluate and reproduce all the graphs in the report, this should be run from the root directory. We note that ```eval.py``` depends on this naming convention. 
 
 If you would like to train your own agent, then the following commmand should be run:

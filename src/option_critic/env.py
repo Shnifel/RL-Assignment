@@ -86,12 +86,10 @@ class Gym2OpEnv(gym.Env):
     def setup_actions(self):
         self._gym_env.action_space.close()
         if self.act_space_type == "cont":
-            print(self._gym_env.action_space)
             self._gym_env.action_space = gym_compat.BoxGymActSpace(self._g2op_env.action_space)
             self.action_space = Box(shape=self._gym_env.action_space.shape,
                                         low=self._gym_env.action_space.low,
                                         high=self._gym_env.action_space.high)
-            print(self.action_space)
         elif self.act_space_type == "disc":
             act_attr_to_keep = [
            "set_bus", "set_line_status"

@@ -24,8 +24,13 @@ conda deactivate
 ```
 src                                             
 ├── actor_critic                                 -> A2C Implementation
-|   └── baseline.py                                  Base model implementation
-|   └── contrastive_learning.py                      Contrastive learning fine tuning
+|   └── actor_critic_models                          Containts actor-critic models from training
+|   └── Multi agent evaluation logs                  Containts the logs used to evlauate the Mulit-agent
+|   └── env.py                                       Grid2Op environment configuration
+|   └── train.py                                     Main file from which models are trained
+|   └── utils                                        Folder containing utility scripts
+|       └── Extract_csv.py                           Extracts logging results from tensorboard files
+|       └── study_agent.py                           Used to Evaluate agents after training
 └── option_critic                                -> Option-Critic Implementation
 |   └── env.py                                       Grid2Op environment configuration
 |   └── train.py                                     Main file from which models are trained
